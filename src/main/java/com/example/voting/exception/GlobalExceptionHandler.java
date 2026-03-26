@@ -1,5 +1,6 @@
 package com.example.voting.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -21,6 +22,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DuplicateVoteException.class)
     public ResponseEntity<Map<String, String>> handleDuplicateVote(DuplicateVoteException ex) {
         Map<String, String> error = Map.of("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, String>> handleDataIntegrity(DataIntegrityViolationException ex) {
+        Map<String, String> error = Map.of("error", "You have already voted on this poll");
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
     }
 
