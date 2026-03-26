@@ -41,14 +41,14 @@ public class PollService {
 
     @Transactional(readOnly = true)
     public PollResponse getPoll(Long id, String sessionId) {
-        Poll poll = pollRepository.findById(id)
+        Poll poll = pollRepository.findByIdWithOptions(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Poll not found with id: " + id));
         return toPollResponse(poll, sessionId);
     }
 
     @Transactional(readOnly = true)
     public List<PollResponse> getAllPolls(String sessionId) {
-        return pollRepository.findAll().stream()
+        return pollRepository.findAllWithOptions().stream()
                 .map(poll -> toPollResponse(poll, sessionId))
                 .toList();
     }
@@ -76,22 +76,23 @@ public class PollService {
 
     @Transactional
     public PollResponse castVote(Long pollId, Long optionId, String sessionId) {
-        Poll poll = pollRepository.findById(pollId)
+        Poll poll = pollRepository.findByIdWithOptions(pollId)
                 .orElseThrow(() -> new ResourceNotFoundException("Poll not found with id: " + pollId));
 
-        voteRepository.findBySessionIdAndOption_Poll_Id(sessionId, pollId)
-                .ifPresent(v -> { throw new DuplicateVoteException("You have already voted on this poll"); });
+        if (voteRepository.existsBySessionIdAndPollId(sessionId, pollId)) {
+            throw new DuplicateVoteException("You have already voted on this poll");
+        }
 
         PollOption option = poll.getOptions().stream()
                 .filter(o -> o.getId().equals(optionId))
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Option not found with id: " + optionId));
 
-        Vote vote = new Vote(option, sessionId);
+        Vote vote = new Vote(option, pollId, sessionId);
         voteRepository.save(vote);
 
         // Refresh to get updated counts
-        poll = pollRepository.findById(pollId).orElseThrow();
+        poll = pollRepository.findByIdWithOptions(pollId).orElseThrow();
         return toPollResponse(poll, sessionId);
     }
 
@@ -102,14 +103,14 @@ public class PollService {
         response.setCreatedAt(poll.getCreatedAt());
 
         List<PollResponse.OptionResponse> optionResponses = poll.getOptions().stream()
-                .map(o -> new PollResponse.OptionResponse(o.getId(), o.getOptionText(), o.getVotes().size()))
+                .map(o -> new PollResponse.OptionResponse(o.getId(), o.getOptionText(), (int) voteRepository.countByOptionId(o.getId())))
                 .toList();
 
         response.setOptions(optionResponses);
         response.setTotalVotes(optionResponses.stream().mapToInt(PollResponse.OptionResponse::getVoteCount).sum());
 
         if (sessionId != null) {
-            response.setHasVoted(voteRepository.findBySessionIdAndOption_Poll_Id(sessionId, poll.getId()).isPresent());
+            response.setHasVoted(voteRepository.existsBySessionIdAndPollId(sessionId, poll.getId()));
         }
 
         return response;
