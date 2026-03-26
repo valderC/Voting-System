@@ -1,0 +1,408 @@
+{
+  "info": {
+    "name": "Voting App API",
+    "description": "Full API collection for the Voting App. Run the Auth > Login request first to authenticate as admin, then use the poll management endpoints.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "pollId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "optionId",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.authenticated).to.be.true;",
+                  "    pm.expect(json.role).to.eql('ROLE_ADMIN');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Authenticates as the admin user. The session cookie is automatically stored and sent with subsequent requests."
+          }
+        },
+        {
+          "name": "Current User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Returns auth status', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json()).to.have.property('authenticated');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Returns the currently authenticated user, or authenticated=false if not logged in."
+          }
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Logout successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().authenticated).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "description": "Invalidates the current session."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Polls",
+      "item": [
+        {
+          "name": "Create Poll",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Poll created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.question).to.be.a('string');",
+                  "    pm.expect(json.options.length).to.be.at.least(2);",
+                  "    pm.collectionVariables.set('pollId', json.id);",
+                  "    pm.collectionVariables.set('optionId', json.options[0].id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What is your favorite programming language?\",\n  \"options\": [\"Java\", \"Python\", \"TypeScript\", \"Go\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/polls",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "polls"]
+            },
+            "description": "Admin only. Creates a new poll and auto-sets pollId and optionId variables for subsequent requests."
+          }
+        },
+        {
+          "name": "List All Polls",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Returns poll list', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/polls",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "polls"]
+            },
+            "description": "Public. Returns all polls with vote counts."
+          }
+        },
+        {
+          "name": "Get Poll by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Returns poll', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('question');",
+                  "    pm.expect(json).to.have.property('options');",
+                  "    pm.expect(json).to.have.property('totalVotes');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/{{pollId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "polls", "{{pollId}}"]
+            },
+            "description": "Public. Returns a single poll with options, vote counts, and whether the current session has voted."
+          }
+        },
+        {
+          "name": "Update Poll",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Poll updated', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().question).to.eql('What is your favorite framework?');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"What is your favorite framework?\",\n  \"options\": [\"Spring Boot\", \"Django\", \"Express\", \"Rails\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/{{pollId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "polls", "{{pollId}}"]
+            },
+            "description": "Admin only. Replaces the question and all options. Existing votes are cleared."
+          }
+        },
+        {
+          "name": "Delete Poll",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Poll deleted', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/{{pollId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "polls", "{{pollId}}"]
+            },
+            "description": "Admin only. Deletes the poll and all associated options and votes."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Voting",
+      "item": [
+        {
+          "name": "Cast Vote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Vote recorded', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.hasVoted).to.be.true;",
+                  "    pm.expect(json.totalVotes).to.be.at.least(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"optionId\": {{optionId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/{{pollId}}/votes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "polls", "{{pollId}}", "votes"]
+            },
+            "description": "Public. Casts a vote for the given option. Returns 409 if the session has already voted on this poll."
+          }
+        },
+        {
+          "name": "Cast Duplicate Vote (expect 409)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Duplicate vote rejected', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"optionId\": {{optionId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/{{pollId}}/votes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "polls", "{{pollId}}", "votes"]
+            },
+            "description": "Sends the same vote again to verify duplicate prevention returns 409."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Cases",
+      "item": [
+        {
+          "name": "Get Non-existent Poll (expect 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Returns 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/polls/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "polls", "99999"]
+            },
+            "description": "Verifies that requesting a non-existent poll returns 404."
+          }
+        },
+        {
+          "name": "Create Poll Without Auth (expect 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Returns 401', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Cookie", "value": "" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"Should fail\",\n  \"options\": [\"A\", \"B\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/polls",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "polls"]
+            },
+            "description": "Verifies that creating a poll without authentication returns 401. The Cookie header is explicitly cleared to ensure no session is sent."
+          }
+        }
+      ]
+    }
+  ]
+}
