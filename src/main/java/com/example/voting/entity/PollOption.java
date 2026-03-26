@@ -5,7 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "poll_options")
+@Table(name = "poll_options",
+        indexes = @Index(name = "idx_poll_option_poll_id", columnList = "poll_id"))
 public class PollOption {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
