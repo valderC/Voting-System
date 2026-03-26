@@ -1,0 +1,6 @@
+target/
+voting-ui/node_modules/
+voting-ui/dist/
+voting-ui/.angular/
+.mvn/wrapper/maven-wrapper.jar
+*.log
